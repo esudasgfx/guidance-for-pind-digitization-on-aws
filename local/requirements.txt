@@ -8,6 +8,8 @@ numpy>=1.21.0,<2.0.0
 Pillow>=9.0.0
 shapely>=2.0.0
 networkx>=3.0
+matplotlib>=3.7.0
+scipy>=1.10.0
 
 # Symbol detection (see inference/requirements.txt)
 # pip install -r inference/requirements.txt torch torchvision --index-url https://download.pytorch.org/whl/cu124

@@ -8,6 +8,7 @@ functions in this repository.
 
 Example:
     python local_pipeline.py diagram.png --model-dir ./models --output ./output
+    python local_pipeline.py diagram.png --model-dir ./models --visualize
 """
 
 from __future__ import annotations
@@ -24,6 +25,7 @@ REPO_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from local.graph_generation import generate_graph
+from local.graph_visualization import generate_visualizations
 from local.line_detection import detect_lines
 from local.notes_processing import process_notes
 from local.paths import LocalExecutionPathManager
@@ -75,6 +77,7 @@ def run_pipeline(
     config: dict[str, Any],
     use_gpu: bool = True,
     skip_notes: bool = False,
+    visualize: bool = False,
     execution_id: str | None = None,
 ) -> dict[str, Any]:
     """Execute the full local pipeline and return a summary dict."""
@@ -82,6 +85,7 @@ def run_pipeline(
     if not image_path.exists():
         raise FileNotFoundError(f"Input image not found: {image_path}")
 
+    total_steps = 6 if visualize else 5
     path_manager = LocalExecutionPathManager(output_dir, execution_id)
     path_manager.ensure_dirs()
     path_manager.write_json(path_manager.get_config_s3_key(), config)
@@ -94,13 +98,13 @@ def run_pipeline(
         notes_config["remove_notes_section"] = False
         notes_config.setdefault("frame_config", {})["remove_frame"] = False
 
-    logging.info("Step 1/5: Notes preprocessing")
+    logging.info("Step 1/%d: Notes preprocessing", total_steps)
     notes_result = process_notes(image_path, notes_config, path_manager)
 
     processed_image_path = path_manager.output_dir / notes_result["processed_key"]
     original_image_path = image_path
 
-    logging.info("Step 2/5: Text detection (PaddleOCR on original image)")
+    logging.info("Step 2/%d: Text detection (PaddleOCR on original image)", total_steps)
     text_results = detect_text(
         original_image_path,
         path_manager,
@@ -108,7 +112,7 @@ def run_pipeline(
         use_gpu=use_gpu,
     )
 
-    logging.info("Step 3/5: Symbol detection (local PyTorch on processed image)")
+    logging.info("Step 3/%d: Symbol detection (local PyTorch on processed image)", total_steps)
     processed_bytes = processed_image_path.read_bytes()
     symbol_results = detect_symbols(
         processed_bytes,
@@ -118,7 +122,7 @@ def run_pipeline(
         notes_result=notes_result,
     )
 
-    logging.info("Step 4/5: Line detection")
+    logging.info("Step 4/%d: Line detection", total_steps)
     line_results = detect_lines(
         processed_image_path=processed_image_path,
         text_results=text_results,
@@ -128,7 +132,7 @@ def run_pipeline(
         path_manager=path_manager,
     )
 
-    logging.info("Step 5/5: Graph generation")
+    logging.info("Step 5/%d: Graph generation", total_steps)
     graph_results = generate_graph(
         image_key=image_path.name,
         text_results=text_results,
@@ -138,6 +142,15 @@ def run_pipeline(
         graph_config=config.get("graph_generation", {}),
         path_manager=path_manager,
     )
+
+    visualization_results: dict[str, Any] | None = None
+    if visualize:
+        logging.info("Step 6/%d: Graph visualization", total_steps)
+        visualization_results = generate_visualizations(
+            graph_data=graph_results["graph_data"],
+            path_manager=path_manager,
+            notes_result=notes_result,
+        )
 
     summary = {
         "execution_id": path_manager.execution_id,
@@ -162,6 +175,13 @@ def run_pipeline(
             ),
         },
     }
+    if visualization_results:
+        summary["visualization"] = {
+            "count": visualization_results.get("count", 0),
+            "paths": visualization_results.get("visualization_paths", {}),
+        }
+        summary["artifacts"].update(visualization_results.get("visualization_paths", {}))
+
     path_manager.write_json(path_manager.rel("execution_summary.json"), summary)
     return summary
 
@@ -201,6 +221,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Skip automatic notes/frame removal",
     )
     parser.add_argument(
+        "--visualize",
+        action="store_true",
+        help="Generate physical layout and graph representation PNGs",
+    )
+    parser.add_argument(
         "--execution-id",
         default=None,
         help="Optional execution ID for output folder naming",
@@ -233,6 +258,7 @@ def main(argv: list[str] | None = None) -> int:
             config=config,
             use_gpu=not args.cpu,
             skip_notes=args.skip_notes,
+            visualize=args.visualize,
             execution_id=args.execution_id,
         )
     except FileNotFoundError as exc:

@@ -199,6 +199,20 @@ def process_notes(image_path: Path, config: dict[str, Any], path_manager) -> dic
     }
     path_manager.write_json(path_manager.get_notes_metadata_s3_key(), notes_metadata)
 
+    frame_adjusted_notes_coordinates = None
+    if notes_coordinates and frame_info.get("frame_removed", False):
+        frame_bounds = frame_info.get("frame_bounds", {})
+        if frame_bounds:
+            frame_adjusted_notes_coordinates = {
+                "x": notes_coordinates["x"] + frame_bounds.get("left", 0),
+                "y": notes_coordinates["y"] + frame_bounds.get("top", 0),
+                "width": notes_coordinates["width"],
+                "height": notes_coordinates["height"],
+                "confidence": notes_coordinates["confidence"],
+                "method_used": notes_coordinates["method_used"],
+                "coordinate_space": "original_image",
+            }
+
     result = {
         "statusCode": 200,
         "success": True,
@@ -208,6 +222,7 @@ def process_notes(image_path: Path, config: dict[str, Any], path_manager) -> dic
         "original_image_dimensions": original_dimensions,
         "processed_image_dimensions": processed_dimensions,
         "notes_coordinates": notes_coordinates,
+        "frame_adjusted_notes_coordinates": frame_adjusted_notes_coordinates,
         "coordinates_used": coordinates_used,
         "frame_info": frame_info,
         "manual_processing_applied": manual_processing_applied,

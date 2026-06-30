@@ -66,6 +66,9 @@ class LocalExecutionPathManager:
     def get_dexpi_s3_key(self) -> str:
         return self.rel("graph", "dexpi_output.xml")
 
+    def get_visualization_path(self) -> str:
+        return self.rel("visualization")
+
     def write_json(self, rel_key: str, data: Any) -> Path:
         path = self.output_dir / rel_key
         path.parent.mkdir(parents=True, exist_ok=True)
