@@ -12,6 +12,7 @@ A comprehensive AWS-based pipeline for processing Piping and Instrumentation Dia
 - [Usage Examples](#usage-examples)
 - [Output Structure](#output-structure)
 - [Documentation](#documentation)
+- [Local Pipeline (No AWS)](#local-pipeline-no-aws)
 - [Notices](#notice)
 - [Cleanup](#cleanup)
 
@@ -287,11 +288,24 @@ s3://output-bucket/
 
 For complete data format specifications, see the [API Reference](docs/API_REFERENCE.md).
 
+## Local Pipeline (No AWS)
+
+You can run the full digitization flow **locally** as a Python CLI script — no AWS account, API keys, or cloud services.
+
+```bash
+pip install -r inference/requirements.txt -r local/requirements.txt
+# download model.tar.gz → ./models  (see guide)
+python local_pipeline.py your-pnid.png --model-dir ./models --output ./output --visualize
+```
+
+**Full step-by-step instructions:** [docs/LOCAL_PIPELINE.md](docs/LOCAL_PIPELINE.md)
+
 ## Documentation
 
 ### Detailed Guides
 
 - **[Configuration Guide](docs/CONFIGURATION.md)** - Detailed parameter explanations and tuning guide
+- **[Local Pipeline Guide](docs/LOCAL_PIPELINE.md)** - Run offline on your machine (no AWS, no API keys)
 - **[API Reference](docs/API_REFERENCE.md)** - Lambda functions, data formats, and S3 organization
 - **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 - **[Shared Files Automation](docs/shared-files-automation.md)** - Development workflow documentation

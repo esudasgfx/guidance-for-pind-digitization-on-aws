@@ -1,0 +1,15 @@
+# Local pipeline dependencies (install alongside inference/requirements.txt)
+paddleocr>=2.7.0
+paddlepaddle-gpu>=2.6.0; platform_system != "Darwin"
+paddlepaddle>=2.6.0; platform_system == "Darwin"
+opencv-python-headless>=4.8.0
+opencv-contrib-python-headless>=4.8.0
+numpy>=1.21.0,<2.0.0
+Pillow>=9.0.0
+shapely>=2.0.0
+networkx>=3.0
+matplotlib>=3.7.0
+scipy>=1.10.0
+
+# Symbol detection (see inference/requirements.txt)
+# pip install -r inference/requirements.txt torch torchvision --index-url https://download.pytorch.org/whl/cu124
